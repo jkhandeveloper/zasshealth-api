@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  PHARMACIST
+  SUPER_ADMIN
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum PaymentMethod {
+  QR
+  CASH
+}
+
+enum DeliveryStatus {
+  PENDING
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
+model User {
+  id                String             @id @default(uuid()) @db.Uuid
+  phone             String             @unique
+  role              Role
+  isVerified        Boolean            @default(false)
+  name              String?
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  doctorProfile     DoctorProfile?
+  patientProfile    PatientProfile?
+  pharmacistProfile PharmacistProfile?
+}
+
+model DoctorProfile {
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @unique @db.Uuid
+  user               User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  specialty          String
+  fees               Decimal        @db.Decimal(12, 2)
+  slotDuration       Int            @default(30)
+  maxPatientsPerSlot Int            @default(1)
+  isApproved         Boolean        @default(false)
+  availability       Availability[]
+  appointments       Appointment[]
+  prescriptions      Prescription[]
+}
+
+model PatientProfile {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @unique @db.Uuid
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  age           Int?
+  gender        String?
+  allergies     String?
+  appointments  Appointment[]
+  prescriptions Prescription[]
+}
+
+model PharmacistProfile {
+  id           String @id @default(uuid()) @db.Uuid
+  userId       String @unique @db.Uuid
+  user         User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  pharmacyName String
+  bills        Bill[]
+}
+
+model Availability {
+  id        String        @id @default(uuid()) @db.Uuid
+  doctorId  String        @db.Uuid
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String        @db.VarChar(5)
+  endTime   String        @db.VarChar(5)
+  isOpen    Boolean       @default(true)
+
+  @@unique([doctorId, dayOfWeek])
+}
+
+model Appointment {
+  id        String            @id @default(uuid()) @db.Uuid
+  patientId String            @db.Uuid
+  doctorId  String            @db.Uuid
+  patient   PatientProfile    @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor    DoctorProfile     @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  slotTime  DateTime          @db.Timestamptz(3)
+  status    AppointmentStatus @default(CONFIRMED)
+  createdAt DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@index([doctorId, slotTime, status])
+  @@index([patientId, slotTime])
+}
+
+model Bill {
+  id             String            @id @default(uuid()) @db.Uuid
+  pharmacistId   String            @db.Uuid
+  pharmacist     PharmacistProfile @relation(fields: [pharmacistId], references: [id], onDelete: Restrict)
+  patientName    String
+  totalAmount    Decimal           @db.Decimal(12, 2)
+  paymentStatus  PaymentStatus     @default(PENDING)
+  paymentMethod  PaymentMethod
+  deliveryStatus DeliveryStatus    @default(PENDING)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
+  items          BillItem[]
+
+  @@index([pharmacistId, createdAt])
+}
+
+model BillItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  billId    String   @db.Uuid
+  bill      Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  name      String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(12, 2)
+
+  @@index([billId])
+}
+
+model Prescription {
+  id        String         @id @default(uuid()) @db.Uuid
+  patientId String         @db.Uuid
+  doctorId  String         @db.Uuid
+  patient   PatientProfile @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor    DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  medicines Json
+  notes     String?
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([patientId, createdAt])
+}
+
+model OtpChallenge {
+  phone                 String    @id
+  otpHash               String
+  expiresAt             DateTime  @db.Timestamptz(3)
+  sentAt                DateTime  @default(now()) @db.Timestamptz(3)
+  attempts              Int       @default(0)
+  consumed              Boolean   @default(false)
+  registrationHash      String?   @unique
+  registrationExpiresAt DateTime? @db.Timestamptz(3)
+}
+
+model RequestLimit {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}
