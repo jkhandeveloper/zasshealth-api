@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsISO8601, IsUUID, Matches } from 'class-validator';
+import { IsISO8601, IsOptional, IsUUID, Matches } from 'class-validator';
 export class BookDto {
   @IsUUID()
   @ApiProperty({
@@ -15,6 +15,8 @@ export class BookDto {
       'Copy a future slotTime from doctors/:id/slots, including Z or timezone offset',
   })
   slotTime: string;
+  @IsOptional() @IsISO8601({ strict: true }) @Matches(/T.*(?:Z|[+-]\d{2}:\d{2})$/)
+  startsAt?: string;
 }
 export class CancelDto {
   @IsUUID()

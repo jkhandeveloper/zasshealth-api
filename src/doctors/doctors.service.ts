@@ -123,6 +123,10 @@ export class DoctorsService {
         }),
     );
   }
+  patients() {
+    return this.db.patientProfile.findMany({ include: { user: { select: { id: true, name: true, phone: true, role: true } } }, orderBy: { id: 'asc' } })
+      .then(rows => rows.map(({ user, ...profile }) => ({ ...user, ...profile })));
+  }
   async slots(doctorId: string, date: string) {
     const { start, end } = dateBounds(date);
     const doctor = await this.db.doctorProfile.findFirst({

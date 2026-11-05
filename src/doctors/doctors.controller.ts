@@ -41,6 +41,7 @@ export class DoctorsController {
   @Public() @Get('list') list(@Query() page: PageDto) {
     return this.doctors.list(page);
   }
+  @Get('patients') @ApiBearerAuth() @Roles('DOCTOR') patients() { return this.doctors.patients(); }
   @Public() @Get(':id/slots') slots(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() dto: SlotsQueryDto,

@@ -8,11 +8,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildSlots } from '../doctors/slots';
 import { BookDto } from './appointments.dto';
 import { PageDto } from '../common/dto';
+import type { User } from '@prisma/client';
 @Injectable()
 export class AppointmentsService {
   constructor(private db: PrismaService) {}
   async book(userId: string, dto: BookDto) {
-    const slotTime = new Date(dto.slotTime);
+    const slotTime = new Date(dto.slotTime ?? dto.startsAt!);
     const patient = await this.db.patientProfile.findUnique({
       where: { userId },
     });
@@ -92,9 +93,10 @@ export class AppointmentsService {
       });
     });
   }
-  list(userId: string, page: PageDto) {
+  list(user: User, page: PageDto) {
     return this.db.appointment.findMany({
-      where: { OR: [{ patient: { userId } }, { doctor: { userId } }] },
+      where: user.role === 'SUPER_ADMIN' ? {} : { OR: [{ patient: { userId: user.id } }, { doctor: { userId: user.id } }] },
+      include: { doctor: { include: { user: { select: { name: true } } } }, patient: { include: { user: { select: { id: true, name: true } } } } },
       orderBy: [{ slotTime: 'desc' }, { id: 'asc' }],
       skip: page.offset,
       take: page.limit,

@@ -30,11 +30,11 @@ export class AppointmentsController {
   ) {
     return this.appointments.cancel(user.id, dto.appointmentId);
   }
-  @Get('list') @Roles('PATIENT', 'DOCTOR') list(
+  @Get('list') @Roles('PATIENT', 'DOCTOR', 'SUPER_ADMIN') list(
     @CurrentUser() user: User,
     @Query() page: PageDto,
   ) {
-    return this.appointments.list(user.id, page);
+    return this.appointments.list(user, page);
   }
 }
 @Module({

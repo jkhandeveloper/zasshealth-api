@@ -9,11 +9,13 @@ import {
   Injectable,
   Module,
   Post,
+  Get,
   UseGuards,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Public } from '../common/security';
+import { CurrentUser, Public } from '../common/security';
+import type { User } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { RegisterDto, SendOtpDto, VerifyOtpDto } from './auth.dto';
 @Injectable()
@@ -35,19 +37,19 @@ export class AuthRateGuard implements CanActivate {
     return true;
   }
 }
-@Public()
 @UseGuards(AuthRateGuard)
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private auth: AuthService) {}
-  @Post('send-otp') @HttpCode(200) send(@Body() dto: SendOtpDto) {
+  @Get('me') me(@CurrentUser() user: User) { return this.auth.me(user.id); }
+  @Public() @Post('send-otp') @HttpCode(200) send(@Body() dto: SendOtpDto) {
     return this.auth.sendOtp(dto);
   }
-  @Post('verify-otp') @HttpCode(200) verify(@Body() dto: VerifyOtpDto) {
+  @Public() @Post('verify-otp') @HttpCode(200) verify(@Body() dto: VerifyOtpDto) {
     return this.auth.verifyOtp(dto);
   }
-  @Post('register-profile') register(@Body() dto: RegisterDto) {
+  @Public() @Post('register-profile') register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 }

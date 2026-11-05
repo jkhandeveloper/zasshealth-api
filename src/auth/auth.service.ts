@@ -26,6 +26,12 @@ export class AuthService {
     private db: PrismaService,
     @Inject(SETTINGS) private config: Settings,
   ) {}
+  me(userId: string) {
+    return this.db.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, name: true, phone: true, role: true, patientProfile: { select: { age: true, gender: true, allergies: true } } },
+    }).then((user) => ({ id: user.id, name: user.name, phone: user.phone, role: user.role, ...user.patientProfile }));
+  }
   private otpHash(phone: string, otp: string) {
     return createHmac('sha256', this.config.otpSecret)
       .update(phone + ':' + otp)
