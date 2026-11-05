@@ -9,6 +9,7 @@ import {
   Injectable,
   Module,
   Post,
+  Patch,
   Get,
   UseGuards,
 } from '@nestjs/common';
@@ -53,8 +54,13 @@ export class AuthController {
     return this.auth.register(dto);
   }
 }
+@Controller('users')
+export class UsersController {
+  constructor(private auth: AuthService) {}
+  @Patch('me') update(@CurrentUser() user: User, @Body() dto: { name?: string }) { return this.auth.updateProfile(user.id, dto.name); }
+}
 @Module({
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [AuthService, AuthRateGuard],
 })
 export class AuthModule {}

@@ -32,6 +32,11 @@ export class AuthService {
       select: { id: true, name: true, phone: true, role: true, patientProfile: { select: { age: true, gender: true, allergies: true } } },
     }).then((user) => ({ id: user.id, name: user.name, phone: user.phone, role: user.role, ...user.patientProfile }));
   }
+  updateProfile(userId: string, name?: string) {
+    const value = name?.trim();
+    if (!value) return this.me(userId);
+    return this.db.user.update({ where: { id: userId }, data: { name: value }, select: { id: true, name: true, phone: true, role: true, patientProfile: { select: { age: true, gender: true, allergies: true } } } }).then((user) => ({ id: user.id, name: user.name, phone: user.phone, role: user.role, ...user.patientProfile }));
+  }
   private otpHash(phone: string, otp: string) {
     return createHmac('sha256', this.config.otpSecret)
       .update(phone + ':' + otp)
